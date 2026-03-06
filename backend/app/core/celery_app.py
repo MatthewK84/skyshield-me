@@ -1,8 +1,5 @@
 """
 SkyShield ME — Celery Application Configuration.
-
-Defines the Celery app, periodic beat schedule for ADS-B polling
-and Telegram scraping, and task autodiscovery.
 """
 
 from __future__ import annotations
@@ -30,15 +27,6 @@ celery_app.conf.update(
     worker_prefetch_multiplier=1,
 )
 
-# ─── Upstash TLS Support ────────────────────────────────────────
-if settings.is_redis_tls():
-    import ssl
-
-    celery_app.conf.update(
-        broker_use_ssl={"ssl_cert_reqs": ssl.CERT_REQUIRED},
-        redis_backend_use_ssl={"ssl_cert_reqs": ssl.CERT_REQUIRED},
-    )
-
 # ─── Periodic Tasks (Beat Schedule) ─────────────────────────────
 celery_app.conf.beat_schedule = {
     "poll-adsb-exchange": {
@@ -51,6 +39,6 @@ celery_app.conf.beat_schedule = {
     },
 }
 
-# ─── Explicit task imports (autodiscover doesn't work reliably) ──
+# ─── Explicit task imports ───────────────────────────────────────
 import app.ingestors.adsb_ingestor  # noqa: F401
 import app.ingestors.telegram_ingestor  # noqa: F401
