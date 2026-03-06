@@ -13,6 +13,7 @@ import logging
 import random
 from datetime import datetime, timezone
 from typing import Final
+from uuid import uuid4
 
 import httpx
 from celery import shared_task
@@ -219,12 +220,7 @@ def _persist_sightings_sync(sightings: list[SightingCreate]) -> int:
     from app.db.models import Sighting, SightingSource
 
     settings = get_settings()
-    sync_url: str = settings.database_url.replace("+asyncpg", "")
-
-    # psycopg2 fallback for sync Celery workers
-    sync_url = sync_url.replace("postgresql://", "postgresql+psycopg2://")
-    if "psycopg2" not in sync_url and "+asyncpg" not in sync_url:
-        sync_url = sync_url.replace("postgresql://", "postgresql+psycopg2://")
+    sync_url: str = settings.get_sync_database_url()
 
     sync_engine = create_engine(sync_url, pool_pre_ping=True)
     persisted: int = 0
@@ -233,6 +229,7 @@ def _persist_sightings_sync(sightings: list[SightingCreate]) -> int:
         with SyncSession(sync_engine) as session:
             for payload in sightings:
                 sighting = Sighting(
+                    id=str(uuid4()),
                     lat=payload.lat,
                     lon=payload.lon,
                     altitude=payload.altitude,
