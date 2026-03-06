@@ -1,0 +1,118 @@
+version: "3.9"
+
+services:
+  # ─── PostgreSQL with PostGIS ──────────────────────────────────────
+  db:
+    image: postgis/postgis:16-3.4
+    container_name: skyshield_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: skyshield
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-skyshield_secret}
+      POSTGRES_DB: skyshield_me
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U skyshield -d skyshield_me"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ─── Redis (Celery broker + result backend) ───────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: skyshield_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # ─── FastAPI Backend ──────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: skyshield_backend
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://skyshield:${DB_PASSWORD:-skyshield_secret}@db:5432/skyshield_me
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/1
+      CELERY_RESULT_BACKEND: redis://redis:6379/2
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+
+  # ─── Celery Worker ────────────────────────────────────────────────
+  celery_worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: skyshield_celery
+    command: celery -A app.core.celery_app worker --loglevel=info --concurrency=4
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://skyshield:${DB_PASSWORD:-skyshield_secret}@db:5432/skyshield_me
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/1
+      CELERY_RESULT_BACKEND: redis://redis:6379/2
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+
+  # ─── Celery Beat (Periodic task scheduler) ────────────────────────
+  celery_beat:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: skyshield_beat
+    command: celery -A app.core.celery_app beat --loglevel=info
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      CELERY_BROKER_URL: redis://redis:6379/1
+      CELERY_RESULT_BACKEND: redis://redis:6379/2
+    depends_on:
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+
+  # ─── React Frontend (dev server) ─────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: skyshield_frontend
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:
