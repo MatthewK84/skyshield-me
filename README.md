@@ -1,14 +1,14 @@
 # SkyShield ME — Regional Detection Dashboard
 
-Production-grade UAS/aircraft detection dashboard fusing ADS-B telemetry and social media sentiment analysis for the Middle East AOR.
+UAS/aircraft detection dashboard fusing ADS-B telemetry and social media sentiment analysis for the Middle East AOR.
 
 ## Architecture
 
 ```
 ┌────────────────┐     ┌──────────────┐     ┌────────────────┐
-│  React/TS      │◄────│  FastAPI      │◄────│  PostgreSQL    │
+│  React/TS      │◄────│  FastAPI     │◄────│  PostgreSQL    │
 │  Leaflet Map   │ WS  │  REST + WS   │     │  + PostGIS     │
-│  React Query   │     │  Pydantic     │     │                │
+│  React Query   │     │  Pydantic    │     │                │
 └────────────────┘     └──────┬───────┘     └────────────────┘
                               │
                     ┌─────────┴─────────┐
@@ -19,9 +19,9 @@ Production-grade UAS/aircraft detection dashboard fusing ADS-B telemetry and soc
                ┌──────────────┼──────────────┐
                │                             │
       ┌────────┴────────┐          ┌─────────┴────────┐
-      │  ADS-B Exchange │          │  Telegram/Social  │
-      │  Ingestor       │          │  Scraper          │
-      │  (mock fallback)│          │  (Telethon)       │
+      │  ADS-B Exchange │          │  Telegram/Social │
+      │  Ingestor       │          │  Scraper         │
+      │  (mock fallback)│          │  (Telethon)      │
       └─────────────────┘          └──────────────────┘
 ```
 
@@ -43,16 +43,16 @@ docker compose up --build
 ## Data Sources
 
 ### ADS-B Exchange
-- Polls for aircraft in the ME bounding box (24°–38°N, 40°–56°E)
-- Filters drone profile: altitude < 5,000 ft AND speed < 100 kts
-- Falls back to synthetic mock data if no API key is configured
+- Polls for aircraft in the ME bounding box (24°–38°N, 40°–56°E).
+- Filters drone profile: altitude < 5,000 ft AND speed < 100 kts.
+- Falls back to synthetic mock data if no API key is configured.
 
 ### Telegram Social Scraper
-- Monitors configured channels for UAS-related keywords
-- Weighted keyword scoring (e.g., "shahed" = 40, "buzzing" = 25)
-- Regex geoparsing maps city names to coordinates
-- FloodWaitError handling with exponential backoff
-- Rate limiting: 3s between channels, 0.5s between messages
+- Monitors configured channels for UAS-related keywords.
+- Weighted keyword scoring (e.g., "shahed" = 40, "buzzing" = 25).
+- Regex geoparsing maps city names to coordinates.
+- FloodWaitError handling with exponential backoff.
+- Rate limiting: 3s between channels, 0.5s between messages.
 
 ## API Endpoints
 
@@ -111,8 +111,8 @@ All configuration is via environment variables (see `.env`):
 
 ## Development Notes
 
-- Mock data generators activate automatically when API keys are absent
-- All Python code uses strict type hints (no `Any`)
-- All TypeScript uses strict mode with `noImplicitAny`
-- WebSocket reconnects with exponential backoff (max 30s)
-- Celery beat polls ADS-B every 30s, Telegram every 60s
+- Mock data generators activate automatically when API keys are absent.
+- All Python code uses strict type hints (no `Any`).
+- All TypeScript uses strict mode with `noImplicitAny`.
+- WebSocket reconnects with exponential backoff (max 30s).
+- Celery beat polls ADS-B every 30s, Telegram every 60s.
