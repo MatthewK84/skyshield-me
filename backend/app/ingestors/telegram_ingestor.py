@@ -18,6 +18,7 @@ import logging
 import re
 from datetime import datetime, timezone
 from typing import Final, Optional
+from uuid import uuid4
 
 from celery import shared_task
 
@@ -375,7 +376,7 @@ def _persist_social_sightings_sync(sightings: list[SightingCreate]) -> int:
     from app.db.models import Sighting, SightingSource
 
     settings = get_settings()
-    sync_url: str = settings.database_url.replace("+asyncpg", "+psycopg2")
+    sync_url: str = settings.get_sync_database_url()
     sync_engine = create_engine(sync_url, pool_pre_ping=True)
     persisted: int = 0
 
@@ -383,6 +384,7 @@ def _persist_social_sightings_sync(sightings: list[SightingCreate]) -> int:
         with SyncSession(sync_engine) as session:
             for payload in sightings:
                 sighting = Sighting(
+                    id=str(uuid4()),
                     lat=payload.lat,
                     lon=payload.lon,
                     altitude=payload.altitude,
