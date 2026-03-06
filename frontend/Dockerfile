@@ -6,7 +6,10 @@ COPY package.json package-lock.json* ./
 RUN npm install
 
 COPY . .
+RUN npm run build
 
-EXPOSE 5173
+RUN npm install -g serve
 
-CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
+EXPOSE 3000
+
+CMD ["serve", "dist", "-s", "-l", "tcp://0.0.0.0:3000"]
