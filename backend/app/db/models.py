@@ -75,6 +75,7 @@ class Sighting(Base):
     icao_hex: Mapped[Optional[str]] = mapped_column(String(8), nullable=True)
 
     # PostGIS geometry column for spatial queries
+    # GeoAlchemy2 automatically creates a GIST spatial index on this column
     geom = Column(
         Geometry(geometry_type="POINT", srid=4326),
         nullable=True,
@@ -108,7 +109,6 @@ class Sighting(Base):
 
     __table_args__ = (
         Index("idx_sightings_timestamp_source", "timestamp", "source"),
-        Index("idx_sightings_geom", "geom", postgresql_using="gist"),
     )
 
     def __repr__(self) -> str:
